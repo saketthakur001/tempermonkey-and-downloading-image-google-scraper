@@ -1,8 +1,8 @@
-const searchTrack = async (trackName) => {
+const searchSpotify = async (query, searchForAlbum = false) => {
     const accessToken = 'BQBPXxVn9139e9RgAIxr5Vp2GKoFJiLoLB2qVcQOEDbJXQJDXllHZQ5EqpHIEdWkyFQ1VFalLmd26GinduKDw5Urxj-4qU9rtWKXIRMMANqrGrVXBcg'; // replace with your actual token
-    const query = encodeURIComponent(trackName);
-    const url = `https://api.spotify.com/v1/search?q=${query}&type=track`;
-
+    const encodedQuery = encodeURIComponent(query);
+    const searchType = searchForAlbum ? 'album' : 'track';
+    const url = `https://api.spotify.com/v1/search?q=${encodedQuery}&type=${searchType}`;  
     try {
         const response = await fetch(url, {
             method: 'GET',
@@ -16,21 +16,25 @@ const searchTrack = async (trackName) => {
         }
 
         const data = await response.json();
-        const tracks = data.tracks.items;
+        const items = data[`${searchType}s`].items;
 
-        // Loop through and log each track's details
-        tracks.forEach(track => {
-            console.log(`Track: ${track.name}`);
-            console.log(`Artist: ${track.artists.map(artist => artist.name).join(', ')}`);
-            console.log(`Album: ${track.album.name}`);
-            console.log(`Preview URL: ${track.preview_url}`);
-            console.log(`Spotify URL: ${track.external_urls.spotify}`);
+        items.forEach(item => {
+            if (searchForAlbum) {
+                console.log(`Album: ${item.name}`);
+                console.log(`Artist: ${item.artists.map(artist => artist.name).join(', ')}`);
+            } else {
+                console.log(`Track: ${item.name}`);
+                console.log(`Artist: ${item.artists.map(artist => artist.name).join(', ')}`);
+                console.log(`Album: ${item.album.name}`);
+            }
+            console.log(`Spotify URL: ${item.external_urls.spotify}`);
             console.log('-------------------------');
         });
     } catch (error) {
-        console.error('Error fetching track:', error);
+        console.error('Error fetching data:', error);
     }
 };
 
 // Example usage
-searchTrack('breaking bad');
+searchSpotify('Into the Endless Night ???? Live', false); // Search for a track
+// searchSpotify('remaster artist:Miles Davis', true); // Search for an album
