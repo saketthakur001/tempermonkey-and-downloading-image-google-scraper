@@ -45,6 +45,6 @@ const searchSpotify = async (query, searchForAlbum = false) => {
 };
 
 // Example usage
-searchSpotify('track:I want the wind to blow artist:The Microphones', false); // Search for a track'
+searchSpotify('Roundabout Yes', false); // Search for a track'
 
 // searchSpotify('remaster artist:Miles Davis', true); // Search for an album
