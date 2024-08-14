@@ -1,68 +1,68 @@
 // ==UserScript==
 // @name         RateYourMusic Spotify Track ID Fetcher with API Search
 // @namespace    http://tampermonkey.net/
-// @version      1.9
-// @description  Fetch Spotify track IDs using API and add a button to copy them to the clipboard on demand.
+// @version      2.1
+// @description  Fetch Spotify track IDs and search using the Spotify API. Updates track IDs when the page changes and copies them to the clipboard on demand.
 // @author       Saket
 // @match        https://rateyourmusic.com/charts/*
 // @grant        GM_setClipboard
+// @grant        GM_xmlhttpRequest
+// @connect      api.spotify.com
 // ==/UserScript==
 
-(async function() {
+(function() {
     'use strict';
 
-    const accessToken = 'YOUR_SPOTIFY_ACCESS_TOKEN'; // replace with your actual token
-
-    // Function to search Spotify for a track or album
-    const searchSpotify = async (query, searchForAlbum = false) => {
-        const encodedQuery = encodeURIComponent(query);
-        const searchType = searchForAlbum ? 'album' : 'track';
-        const url = `https://api.spotify.com/v1/search?q=${encodedQuery}&type=${searchType}`;  
-
-        try {
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            const items = data[`${searchType}s`].items;
-            const spotifyURLs = [];
-
-            items.forEach(item => {
-                spotifyURLs.push(item.external_urls.spotify);
-            });
-
-            return spotifyURLs;
-        } catch (error) {
-            console.error('Error fetching data:', error);
-            return [];
-        }
-    };
-
-    // Function to extract track titles and artists
-    const extractTrackTitlesAndArtists = () => {
-        const tracks = [];
-
+    // Function to extract track titles and artists from the page
+    function extractTrackTitlesAndArtists() {
+        let tracks = [];
         document.querySelectorAll('.page_charts_section_charts_item').forEach((item) => {
-            const trackTitleElement = item.querySelector('.page_charts_section_charts_item_title');
-            const artistElement = item.querySelector('.page_charts_section_charts_item_credited_links a');
-
-            if (trackTitleElement && artistElement) {
-                const trackTitle = trackTitleElement.textContent.trim();
-                const artist = artistElement.textContent.trim();
-                tracks.push(`${trackTitle} ${artist}`);
+            let title = item.querySelector('.page_charts_section_charts_item_title')?.textContent.trim();
+            let artist = item.querySelector('.page_charts_section_charts_item_artists')?.textContent.trim();
+            if (title && artist) {
+                tracks.push({ title, artist });
             }
         });
-
+        console.log('Extracted tracks:', tracks);
         return tracks;
-    };
+    }
+
+    // Function to search for tracks on Spotify and print details
+    async function searchSpotifyTracks(tracks) {
+        const accessToken = 'YOUR_SPOTIFY_ACCESS_TOKEN'; // replace with your actual token
+        for (const track of tracks) {
+            const query = `${track.title} ${track.artist}`;
+            const encodedQuery = encodeURIComponent(query);
+            const url = `https://api.spotify.com/v1/search?q=${encodedQuery}&type=track`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const items = data.tracks.items;
+
+                items.forEach(item => {
+                    console.log(`Track: ${item.name}`);
+                    console.log(`Artist: ${item.artists.map(artist => artist.name).join(', ')}`);
+                    console.log(`Album: ${item.album.name}`);
+                    console.log(`Spotify URL: ${item.external_urls.spotify}`);
+                    console.log('-------------------------');
+                });
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        }
+    }
 
     // Function to create a button for copying track IDs
     function createClipboardButton() {
@@ -78,27 +78,42 @@
         clipboardButton.style.padding = '10px';
         clipboardButton.style.borderRadius = '5px';
 
-        clipboardButton.onclick = async () => {
-            const tracks = extractTrackTitlesAndArtists();
-            let spotifyURLs = '';
-
-            for (let track of tracks) {
-                const urls = await searchSpotify(track);
-                if (urls.length > 0) {
-                    spotifyURLs += `${urls[0]}\n`;
-                }
-            }
-
-            if (spotifyURLs) {
-                GM_setClipboard(spotifyURLs.trim());
-                // Alert removed to avoid pop-ups
+        clipboardButton.onclick = () => {
+            if (window.storedTrackIDs) {
+                GM_setClipboard(window.storedTrackIDs.trim());
+                console.log('Track IDs copied to clipboard.');
+            } else {
+                console.log('No track IDs available to copy.');
             }
         };
 
         document.body.appendChild(clipboardButton);
     }
 
-    // Create the button on page load
+    // Function to handle URL changes and update track IDs
+    function handleURLChanges() {
+        const observer = new MutationObserver(() => {
+            if (location.href !== previousUrl) {
+                previousUrl = location.href;
+                console.log('URL changed to:', previousUrl);
+                extractAndSearchTracks();
+            }
+        });
+
+        let previousUrl = location.href;
+        observer.observe(document, { subtree: true, childList: true });
+    }
+
+    // Function to extract and search for tracks
+    function extractAndSearchTracks() {
+        const tracks = extractTrackTitlesAndArtists();
+        searchSpotifyTracks(tracks);
+        // Here, you can add code to update `window.storedTrackIDs` if needed
+    }
+
+    // Run the functions
+    extractAndSearchTracks();
     createClipboardButton();
+    handleURLChanges();
 
 })();

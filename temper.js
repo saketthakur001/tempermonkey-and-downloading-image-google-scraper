@@ -1,8 +1,11 @@
 const searchSpotify = async (query, searchForAlbum = false) => {
-    const accessToken = 'BQBPXxVn9139e9RgAIxr5Vp2GKoFJiLoLB2qVcQOEDbJXQJDXllHZQ5EqpHIEdWkyFQ1VFalLmd26GinduKDw5Urxj-4qU9rtWKXIRMMANqrGrVXBcg'; // replace with your actual token
+    const accessToken = 'BQAiFWI3kyDEPBvthBHaCYERtFhka46z7WHJ07OLTZFSBFLwNo7PrC0grBGPRC8UIz36cRyPLh6hTd6AlVh4VuTEwI7nlhzoqoJKVMFiAeC6jyvZ350'; // replace with your actual token
     const encodedQuery = encodeURIComponent(query);
     const searchType = searchForAlbum ? 'album' : 'track';
-    const url = `https://api.spotify.com/v1/search?q=${encodedQuery}&type=${searchType}`;  
+    const url = `https://api.spotify.com/v1/search?q=${encodedQuery}&type=${searchType}`;
+
+    console.log(`Searching Spotify with URL: ${url}`); // Debug print
+
     try {
         const response = await fetch(url, {
             method: 'GET',
@@ -16,7 +19,13 @@ const searchSpotify = async (query, searchForAlbum = false) => {
         }
 
         const data = await response.json();
-        const items = data[`${searchType}s`].items;
+        console.log('Response Data:', data); // Debug print
+
+        const items = data[`${searchType}s`]?.items || [];
+
+        if (items.length === 0) {
+            console.log('No items found.');
+        }
 
         items.forEach(item => {
             if (searchForAlbum) {
@@ -36,5 +45,6 @@ const searchSpotify = async (query, searchForAlbum = false) => {
 };
 
 // Example usage
-searchSpotify('Into the Endless Night ???? Live', false); // Search for a track
+searchSpotify('track:I want the wind to blow artist:The Microphones', false); // Search for a track'
+
 // searchSpotify('remaster artist:Miles Davis', true); // Search for an album
