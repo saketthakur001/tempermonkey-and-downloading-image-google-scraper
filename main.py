@@ -139,7 +139,7 @@ google_crawler = GoogleImageCrawler(
 )
 
 filters = {
-    'size': '>1920x1080',
+    'size': '=1920x1080',
     # 'size': '>1280x720',
 
     # 'type': 'photo'

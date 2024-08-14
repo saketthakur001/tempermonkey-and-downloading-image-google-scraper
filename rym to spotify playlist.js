@@ -1,108 +1,241 @@
 // ==UserScript==
+
 // @name         RateYourMusic Spotify Track ID Fetcher
+
 // @namespace    http://tampermonkey.net/
-// @version      1.9
+
+// @version      1.16
+
 // @description  Fetch Spotify track IDs and add a button to copy them to the clipboard on demand.
+
 // @author       Saket
+
 // @match        https://rateyourmusic.com/charts/*
+
 // @grant        GM_setClipboard
+
 // ==/UserScript==
 
+
+
 (function() {
+
     'use strict';
 
-    // Function to extract track IDs and store them
-    async function extractTrackIDs() {
-        let trackIDs = '';
 
-        document.querySelectorAll('.page_charts_section_charts_item').forEach(async (item) => {
-            const trackNameElement = item.querySelector('.page_charts_section_charts_item_title a');
-            const artistElement = item.querySelector('.page_charts_section_charts_item_credited_text a.artist');
 
-            if (trackNameElement && artistElement) {
-                const trackName = trackNameElement.textContent.trim();
-                const artistName = artistElement.textContent.trim();
+    // Function to extract track IDs and details
 
-                console.log(`Processing item: ${trackName} by ${artistName}`);
+    function extractTrackIDs() {
 
-                const searchQuery = `${trackName} ${artistName}`;
-                console.log(`Search Query: ${searchQuery}`);
+        let trackData = '';
 
-                const searchUrl = `https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery)}&type=track`;
+        console.log('Starting extraction of track IDs and details...');
 
-                try {
-                    const response = await fetch(searchUrl, {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `Bearer YOUR_ACCESS_TOKEN` // Replace with your actual token
-                        }
-                    });
 
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
 
-                    const data = await response.json();
-                    const tracks = data.tracks.items;
+        document.querySelectorAll('.page_charts_section_charts_item').forEach((item, index) => {
 
-                    if (tracks.length > 0) {
-                        tracks.forEach(track => {
-                            console.log(`Track Name: ${track.name}`);
-                            console.log(`Artist Names: ${track.artists.map(artist => artist.name).join(', ')}`);
-                            console.log(`Spotify URL: ${track.external_urls.spotify}`);
-                            console.log('-------------------------');
+            console.log(`Processing item ${index + 1}...`);
 
-                            trackIDs += `Track: ${track.name}\nArtist: ${track.artists.map(artist => artist.name).join(', ')}\nSpotify URL: ${track.external_urls.spotify}\n\n`;
-                        });
-                    } else {
-                        console.log('No tracks found for query:', searchQuery);
-                    }
-                } catch (error) {
-                    console.error('Error fetching data:', error);
-                }
+
+
+            let spotifyData = item.querySelector('.page_charts_section_charts_item_media_links div[data-links]');
+
+            let trackName = item.querySelector('.page_charts_section_charts_item_title a')?.innerText.trim() || 'Unknown Track';
+
+            let artistElements = item.querySelectorAll('.page_charts_section_charts_item_credited_links_primary .artist');
+
+            let artistNames = Array.from(artistElements).map(el => el.innerText.trim()).join(', ') || 'Unknown Artist';
+
+
+
+            console.log('Track Name:', trackName);
+            console.log(spotifyData, '.dick 📋📋📋📋📋📋📋📋📋📋📋📋📋📋')
+            console.log(artistElements)
+            console.log('Artist Names:', artistNames);
+
+
+
+            if (!spotifyData) {
+
+                console.log('No Spotify data found for this item.');
+
+                return;
+
             }
+
+
+
+            let dataLinks;
+
+            try {
+
+                dataLinks = JSON.parse(spotifyData.getAttribute('data-links'));
+
+                console.log('Parsed data-links:', dataLinks);
+
+            } catch (error) {
+
+                console.log('Error parsing data-links:', error);
+
+                return;
+
+            }
+
+
+
+            // Logging the search query
+
+            console.log('Search Query:', `track:${trackName} artist:${artistNames}`);
+
+
+
+            if (dataLinks && dataLinks.spotify && Object.keys(dataLinks.spotify).length > 0) {
+
+                let spotifyTrackID = Object.keys(dataLinks.spotify)[0];
+
+                let spotifyURL = `https://open.spotify.com/track/${spotifyTrackID}`;
+
+                trackData += `${trackName} by ${artistNames}: ${spotifyURL}\n`;
+
+
+
+                // Print track details to the console
+
+                console.log(`Track: ${trackName}`);
+
+                console.log(`Artist: ${artistNames}`);
+
+                console.log(`Spotify URL: ${spotifyURL}`);
+
+                console.log('-------------------------');
+
+            } else {
+
+                console.log('No valid Spotify link found in data-links or data-links is empty.');
+
+            }
+
         });
 
-        // Store the track IDs in the global scope
-        window.storedTrackIDs = trackIDs;
+
+
+        return trackData;
+
     }
 
-    // Function to create a button for copying track IDs
+
+
+    // Function to create a button for copying track data
+
     function createClipboardButton() {
+
+        let existingButton = document.getElementById('copyTrackDataButton');
+
+        if (existingButton) {
+
+            console.log('Removing existing button...');
+
+            existingButton.remove(); // Remove any existing button to avoid duplicates
+
+        }
+
+
+
         let clipboardButton = document.createElement('div');
+
+        clipboardButton.id = 'copyTrackDataButton';
+
         clipboardButton.innerHTML = 'Copy Track Data';
+
         clipboardButton.style.position = 'fixed';
+
         clipboardButton.style.bottom = '10px';
+
         clipboardButton.style.right = '10px';
+
         clipboardButton.style.fontSize = '14px';
+
         clipboardButton.style.cursor = 'pointer';
-        clipboardButton.style.backgroundColor = '#ffffff';
-        clipboardButton.style.border = '1px solid #000000';
-        clipboardButton.style.padding = '5px';
+
+        clipboardButton.style.backgroundColor = '#007bff';
+
+        clipboardButton.style.color = '#ffffff';
+
+        clipboardButton.style.border = '1px solid #0056b3';
+
+        clipboardButton.style.padding = '8px 12px';
+
         clipboardButton.style.borderRadius = '5px';
 
+        clipboardButton.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+
+        clipboardButton.style.textAlign = 'center';
+
+
+
         clipboardButton.onclick = () => {
-            if (window.storedTrackIDs) {
-                GM_setClipboard(window.storedTrackIDs.trim());
+
+            console.log('Button clicked. Extracting track data...');
+
+            let trackData = extractTrackIDs();
+
+            if (trackData) {
+
+                console.log('Copying track data to clipboard...');
+
+                GM_setClipboard(trackData.trim());
+
                 console.log('Track data copied to clipboard.');
+
+            } else {
+
+                console.log('No track data available to copy.');
+
             }
+
         };
 
+
+
         document.body.appendChild(clipboardButton);
+
+        console.log('Clipboard button created.');
+
     }
 
-    // Run the functions
-    extractTrackIDs();
+
+
+    // Run the function to create the clipboard button
+
     createClipboardButton();
 
-    // Monitor for URL changes and re-extract IDs if necessary
+
+
+    // Monitor for URL changes and re-create button if necessary
+
     const observer = new MutationObserver(() => {
+
         if (location.href !== previousUrl) {
+
             previousUrl = location.href;
-            extractTrackIDs();
+
+            console.log('URL changed. Re-creating clipboard button...');
+
+            createClipboardButton();
+
         }
+
     });
 
+
+
     let previousUrl = location.href;
+
     observer.observe(document, { subtree: true, childList: true });
+
+    console.log('Mutation observer initialized.');
+
 })();
+
