@@ -1,41 +1,37 @@
 import os
 from PIL import Image
 
-def create_directories(base_path):
-    portrait_dir = os.path.join(base_path, 'portrait')
-    landscape_dir = os.path.join(base_path, 'landscape')
+# Define the source and target directories
+source_dir = '/home/saket/downloads/artists_paintings'
+portrait_dir = '/home/saket/downloads/portrait'
+landscape_dir = '/home/saket/downloads/landscape'
 
-    os.makedirs(portrait_dir, exist_ok=True)
-    os.makedirs(landscape_dir, exist_ok=True)
+# Create target directories if they don't exist
+os.makedirs(portrait_dir, exist_ok=True)
+os.makedirs(landscape_dir, exist_ok=True)
 
-    return portrait_dir, landscape_dir
-
-def move_images_by_resolution(base_path):
-    portrait_dir, landscape_dir = create_directories(base_path)
-
-    # Traverse through all the subdirectories
-    for root, _, files in os.walk(base_path):
-        for file in files:
-            if file.endswith(('.jpg', '.jpeg', '.png')):
-                file_path = os.path.join(root, file)
-                
-                # Open the image and get its size
-                with Image.open(file_path) as img:
+# Loop through artists' folders
+for artist in os.listdir(source_dir):
+    artist_dir = os.path.join(source_dir, artist)
+    if os.path.isdir(artist_dir):
+        # Create artist subdirectories in portrait and landscape folders
+        artist_portrait_dir = os.path.join(portrait_dir, artist)
+        artist_landscape_dir = os.path.join(landscape_dir, artist)
+        os.makedirs(artist_portrait_dir, exist_ok=True)
+        os.makedirs(artist_landscape_dir, exist_ok=True)
+        
+        for img_name in os.listdir(artist_dir):
+            img_path = os.path.join(artist_dir, img_name)
+            try:
+                with Image.open(img_path) as img:
                     width, height = img.size
-
-                    # Determine the directory to move the file to
-                    if height > width:
-                        target_dir = portrait_dir
-                    elif width > height:
-                        target_dir = landscape_dir
+                    new_name = f"{artist}.{img_name.split('.')[0]}.jpg"
+                    
+                    if width > height:
+                        target_dir = artist_landscape_dir
                     else:
-                        continue  # Skip images with equal width and height (e.g., square)
-
-                    # Move the file
-                    target_path = os.path.join(target_dir, file)
-                    os.rename(file_path, target_path)
-                    print(f"Moved {file} to {target_dir}")
-
-# Path to the base directory containing artist folders
-base_path = '/home/saket/downloads/artists'
-move_images_by_resolution(base_path)
+                        target_dir = artist_portrait_dir
+                    
+                    img.save(os.path.join(target_dir, new_name))
+            except Exception as e:
+                print(f"Error processing {img_name}: {e}")
